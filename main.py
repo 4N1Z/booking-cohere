@@ -90,7 +90,7 @@ def initialize_session_state() :
             Ask these questions one after another. DO NOT ASK EVERYTHING AT ONCE. Get the information one at a time.
             Finally when it is time to book, ask the customer to confirm the booking. If they say yes, then confirm the booking by displaying the booking details back to them in a formatted way. If they say no, then cancel the booking and start over.
             If you don't know the answer to any query, just say you don't know. DO NOT try to make up an answer.
-            If the question is not related to the context, politely respond that you are tuned to only answer questions that are related to the context."""
+            If the question is not related to the context, politely respond that you are tuned to only answer questions that are related to the context. GIVE SHORT AND CONSICE ANSWER ONLY :"""
 
         st.session_state.chat_history.append({"role": "User", "message": prompt})
         st.session_state.chat_history.append({"role": "Chatbot", "message": "Yes understood, I will act accordingly, and will be polite, short and to the point."})
@@ -121,10 +121,11 @@ def on_click_callback():
                 prompt_truncation = 'auto',
                 # stream=True,
             ) 
+
             if "confirm booking" in customer_prompt.lower():
                 summary = summarizer(st.session_state.chat_history)
                 # print(summary)
-                    # Add content to the sidebar
+                # Add content to the sidebar
                 st.sidebar.title("Summary")
                 st.sidebar.write(summary)
                 st.write(generateDetails(summary))

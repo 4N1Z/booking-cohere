@@ -4,6 +4,8 @@ import os
 import requests
 import webbrowser
 from bs4 import BeautifulSoup
+import json
+import re
 
 co = cohere.Client('oT6jA28iJxq79ZT1ihQrDhjwCdkMsIFGfFEbX7PL') 
 
@@ -65,13 +67,13 @@ def generateDetails(text):
         "name": " ",
         "number": 1234567890,
         "email": " ",
-        "destination": " ",
+        "destination": "KOCHI",
         "check_in_date": " ",
         "check_out_date": " ",
         "unique_id": "abc123"
     }
 
-    JSONFormatPrompt = "You should extract the given details text: " + text +" into this  \n: "+ " "+ str(JSONFormat) + "\n JSON FORMAT and populatea corresponding values from text : If you couldn't find all the anser to the fileds then give '0' instead. DONOT LEAVE ANY FILED BLANK AND NO OTHER OUTPUT REQUIRED. The text is :" + text 
+    JSONFormatPrompt = "You should extract the given details from the text: " + text +" into this  \n: "+ " "+ str(JSONFormat) + "\n JSON FORMAT and populatea corresponding values from text : .If you couldn't find all the answer to the fileds then do fill it with dummy values instead. Use this format for datess instead: YYYY-MM-DD. DONOT LEAVE ANY FILED BLANK AND NO OTHER OUTPUT REQUIRED. The text is :" + text + 'DONT GENERTATE ANY REPLY OTHER THAN THE JSON STRING'
     response = co.generate(
         # text,
         model='command-nightly',
@@ -81,26 +83,45 @@ def generateDetails(text):
         # finish_reason= COMPLETE,
         # token_likelihoods= None,
     )
-    st.write("The API Response to send : ")
-    st.write(response.generations[0].text)
+    # st.write("The API Response to send : ")
+    # st.write(response.generations[0].text)
+    print(response.generations[0].text) 
     sendAPIReg(response.generations[0].text)
 
+def getJSONReponse(input_string ):
+    
+    start_index = input_string.find('{')
+    end_index = input_string.find('}') + 1
+    json_string = input_string[start_index:end_index]
+
+    # Convert the extracted content to JSON
+    try:
+        json_data = json.loads(json_string)
+        print("\nExtracted JSON: \n")
+        print(json.dumps(json_data, indent=2))  # Print formatted JSON
+    except json.JSONDecodeError as e:
+        print("Error decoding JSON:", e)
+
+    return json_data
 
 
-def sendAPIReg(payload):
+def sendAPIReg(reponse_string):
+
+    # Convert Respone to extract only the JSON part
+
+    # Use regular expression to extract the JSON string
+    payload = getJSONReponse(reponse_string) 
     api_endpoint = "https://travel-llm-api.vercel.app/checkout/"
     # Make a POST request to the API endpoint
     response = requests.post(api_endpoint, data=payload)
 
     # Check the status code of the response
-    if response.status_code == 200:
-        # Parse the HTML content using BeautifulSoup
-        soup = BeautifulSoup(response.text, 'html.parser')
-        
-        # Directly open the parsed HTML content in the default web browser
-        with open("temp.html", "w", encoding="utf-8") as file:
-            file.write(str(soup))
-        webbrowser.open("temp.html")
+    if response.status_code == 201:
+        api_response = json.loads(response.text)
+        link = api_response.get("link", None)
+        print(link)
+        webbrowser.open(link)
+        # print("API Response: \n ", response.text)
     else:
         # API call failed, print the error status code and response content
         print("API Error:", response.status_code, response.text)
@@ -113,6 +134,19 @@ The suite costs ₹12600 and comes with a king bed, executive lounge access, a s
 Nothing was mentioned about extras."""
 
     # generateKBase(data)
+
+    JSONFormat = {
+        "name": "TEST DATA ",
+        "number": 1234567890,
+        "email": "1232@gmail.com ",
+        "destination": " TRVM",
+        "check_in_date": "2002-02-4",
+        "check_out_date": "2002-02-6",
+        "unique_id": "abc123"
+    }
+
+
+    # sendAPIReg(JSONFormat)
     # generateDetails(text)
 
 # Add the summary
