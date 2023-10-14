@@ -26,7 +26,6 @@ def summarizer (text):
     CleanText = formattingForSummarizer(str(text))
     # prompt_template = "Summarize the given content into 5 paragraph response of `MORE THAN 200 WORDS` each. The content is : " + ' ' + CleanText 
     summarizer_prompt  = "You are the manager of a hotel and you're task is to summarize the given content: that is the details of booking into the format needed for billing.. "
-
     response = co.summarize( 
           text=CleanText,
           length='long',
@@ -80,51 +79,68 @@ def generateDetails(text):
         prompt=JSONFormatPrompt,
         temperature=0.3,
         return_likelihoods =  None,
-        # finish_reason= COMPLETE,
-        # token_likelihoods= None,
     )
     # st.write("The API Response to send : ")
     # st.write(response.generations[0].text)
     print(response.generations[0].text) 
     sendAPIReg(response.generations[0].text)
 
-def getJSONReponse(input_string ):
+def ifJSONComplete(text):
+    required_fields = ["name", "number", "email", "destination", "check_in_date", "check_out_date", "unique_id"]
+    incoming_json = text
+    
+    for field in required_fields:
+        if field not in incoming_json or not incoming_json[field]:
+            return False
+        
+    print("________________JSON is complete____________")
+    return True
+
+
+# Function to take only the JSON from input string
+def getJSONReponse(input_string):
     
     start_index = input_string.find('{')
     end_index = input_string.find('}') + 1
     json_string = input_string[start_index:end_index]
 
+    json_data = json.loads(json_string)
+    print("\nExtracted JSON: \n")
+    print(json.dumps(json_data, indent=2))
+
     # Convert the extracted content to JSON
-    try:
-        json_data = json.loads(json_string)
-        print("\nExtracted JSON: \n")
-        print(json.dumps(json_data, indent=2))  # Print formatted JSON
-    except json.JSONDecodeError as e:
-        print("Error decoding JSON:", e)
+    # try:
+    #     json_data = json.loads(json_string)
+    #     print("\nExtracted JSON: \n")
+    #     print(json.dumps(json_data, indent=2))  # Print formatted JSON
+    # except json.JSONDecodeError as e:
+    #     print("Error decoding JSON:", e)
 
     return json_data
 
 
 def sendAPIReg(reponse_string):
 
-    # Convert Respone to extract only the JSON part
-
-    # Use regular expression to extract the JSON string
     payload = getJSONReponse(reponse_string) 
-    api_endpoint = "https://travel-llm-api.vercel.app/checkout/"
-    # Make a POST request to the API endpoint
-    response = requests.post(api_endpoint, data=payload)
 
-    # Check the status code of the response
-    if response.status_code == 201:
-        api_response = json.loads(response.text)
-        link = api_response.get("link", None)
-        print(link)
-        webbrowser.open(link)
-        # print("API Response: \n ", response.text)
-    else:
-        # API call failed, print the error status code and response content
-        print("API Error:", response.status_code, response.text)
+    if (ifJSONComplete(payload)):
+
+        api_endpoint = "https://travel-llm-api.vercel.app/checkout/"
+        # Make a POST request to the API endpoint
+        response = requests.post(api_endpoint, data=payload)
+
+        # Check the status code of the response
+        if response.status_code == 201:
+            api_response = json.loads(response.text)
+            link = api_response.get("link", None)
+            print(link)
+            webbrowser.open(link)
+            # print("API Response: \n ", response.text)
+        else:
+            # API call failed, print the error status code and response content
+            print("API Error:", response.status_code, response.text)
+    else :
+        print("_______JSON is not complete_______")
 
 
 def main():
@@ -147,7 +163,7 @@ Nothing was mentioned about extras."""
 
 
     # sendAPIReg(JSONFormat)
-    # generateDetails(text)
+    generateDetails(text)
 
 # Add the summary
 if __name__ == "__main__":
