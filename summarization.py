@@ -85,12 +85,32 @@ def generateDetails(text):
     print(response.generations[0].text) 
     sendAPIReg(response.generations[0].text)
 
-def ifJSONComplete(text):
+
+def fillEmptyFields(json_data):
     required_fields = ["name", "number", "email", "destination", "check_in_date", "check_out_date", "unique_id"]
-    incoming_json = text
+
+    dummy_values = {
+        "name": "UNKNOWN",
+        "number":0000000,
+        "email": "unknown@example.com",
+        "destination": "UNKNOWN",
+        "check_in_date": "1900-01-01",
+        "check_out_date": "1900-01-01",
+        "unique_id": "UNKNOWN"
+    }
+
+    for field in required_fields:
+        if field not in json_data or not json_data[field] or json_data[field].strip() == "":
+            json_data[field] = dummy_values.get(field, "UNKNOWN")
+
+    return json_data
+
+
+def ifJSONComplete(incoming_json):
+    required_fields = ["name", "number", "email", "destination", "check_in_date", "check_out_date", "unique_id"]
     
     for field in required_fields:
-        if field not in incoming_json or not incoming_json[field]:
+        if field not in incoming_json or incoming_json[field] in ["", " "]:
             return False
         
     print("________________JSON is complete____________")
@@ -108,39 +128,41 @@ def getJSONReponse(input_string):
     print("\nExtracted JSON: \n")
     print(json.dumps(json_data, indent=2))
 
-    # Convert the extracted content to JSON
-    # try:
-    #     json_data = json.loads(json_string)
-    #     print("\nExtracted JSON: \n")
-    #     print(json.dumps(json_data, indent=2))  # Print formatted JSON
-    # except json.JSONDecodeError as e:
-    #     print("Error decoding JSON:", e)
 
     return json_data
 
 
-def sendAPIReg(reponse_string):
+def sendAPIReg(response_string):
 
-    payload = getJSONReponse(reponse_string) 
+    payload = {}
+    if (ifJSONComplete(getJSONReponse(response_string))):
+        payload = getJSONReponse(response_string)
 
-    if (ifJSONComplete(payload)):
-
-        api_endpoint = "https://travel-llm-api.vercel.app/checkout/"
-        # Make a POST request to the API endpoint
-        response = requests.post(api_endpoint, data=payload)
-
-        # Check the status code of the response
-        if response.status_code == 201:
-            api_response = json.loads(response.text)
-            link = api_response.get("link", None)
-            print(link)
-            webbrowser.open(link)
-            # print("API Response: \n ", response.text)
-        else:
-            # API call failed, print the error status code and response content
-            print("API Error:", response.status_code, response.text)
     else :
         print("_______JSON is not complete_______")
+        payload = fillEmptyFields(payload)
+        print("_______JSON completeddddd_______")
+        print(payload)
+
+    st.write("The API Response to send : \n", payload)
+
+
+    
+    api_endpoint = "https://travel-llm-api.vercel.app/checkout/"
+    # Make a POST request to the API endpoint
+    response = requests.post(api_endpoint, data=payload)
+
+    # Check the status code of the response
+    if response.status_code == 201:
+        api_response = json.loads(response.text)
+        link = api_response.get("link", None)
+        print(link)
+    
+        webbrowser.open(link)
+        # print("API Response: \n ", response.text)
+    else:
+        # API call failed, print the error status code and response content
+        print("API Error:", response.status_code, response.text)
 
 
 def main():
@@ -154,15 +176,19 @@ Nothing was mentioned about extras."""
     JSONFormat = {
         "name": "TEST DATA ",
         "number": 1234567890,
-        "email": "1232@gmail.com ",
-        "destination": " TRVM",
-        "check_in_date": "2002-02-4",
+        "email": "12321@gmail.com",
+        "destination": " ",
+        "check_in_date": "2002-02-6",
         "check_out_date": "2002-02-6",
         "unique_id": "abc123"
     }
 
 
     # sendAPIReg(JSONFormat)
+    # if ifJSONComplete(JSONFormat) :
+    #     print("JSON is complete")
+    # else :
+    #     print("JSON is not complete")
     generateDetails(text)
 
 # Add the summary
